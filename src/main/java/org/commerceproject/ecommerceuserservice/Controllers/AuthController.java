@@ -29,7 +29,7 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<UserDTO> signUp(@RequestBody SignUpRequestDTO request) {
-        UserDTO userDto = authServiceInterface.signUp(request.getEmail(), request.getPassword()).getBody();
+        UserDTO userDto = authServiceInterface.signUp(request.getEmail(), request.getPassword());
         return new ResponseEntity<>(userDto, HttpStatus.OK);
     }
 
@@ -41,7 +41,7 @@ public class AuthController {
 
     @PostMapping("/validate")
     public ResponseEntity<SessionStatus> validateToken(ValidateTokenRequestDTO request) {
-        SessionStatus sessionStatus = authServiceInterface.validate(request.getToken(), request.getUserId()).getBody();
+        SessionStatus sessionStatus = authServiceInterface.validate(request.getToken(), request.getUserId());
         return new ResponseEntity<>(sessionStatus, HttpStatus.OK);
     }
 }

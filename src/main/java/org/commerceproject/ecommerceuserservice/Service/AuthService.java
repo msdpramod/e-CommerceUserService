@@ -1,9 +1,12 @@
 package org.commerceproject.ecommerceuserservice.Service;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.MacAlgorithm;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.commerceproject.ecommerceuserservice.DTOs.UserDTO;
+import org.commerceproject.ecommerceuserservice.Models.Role;
 import org.commerceproject.ecommerceuserservice.Models.Session;
 import org.commerceproject.ecommerceuserservice.Models.SessionStatus;
 import org.commerceproject.ecommerceuserservice.Models.User;
@@ -18,10 +21,7 @@ import org.springframework.util.MultiValueMapAdapter;
 
 import javax.crypto.SecretKey;
 import java.time.LocalDate;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class AuthService implements AuthServiceInterface{
@@ -118,13 +118,14 @@ public class AuthService implements AuthServiceInterface{
 
         UserDTO userDto = UserDTO.from(user);
 
-//        Map<String, String> headers = new HashMap<>();
-//        headers.put(HttpHeaders.SET_COOKIE, token);
+        /*
+            It looks like you are working with HTTP headers and setting a "Set-Cookie" header in Java. The code snippet you
+             provided is using a MultiValueMapAdapter to handle HTTP headers. Assuming you are using
+            Spring Framework or a similar library that utilizes MultiValueMap for representing HTTP headers,
+         */
 
         MultiValueMapAdapter<String, String> headers = new MultiValueMapAdapter<>(new HashMap<>());
         headers.add(HttpHeaders.SET_COOKIE, "auth-token:" + token);
-
-
 
         ResponseEntity<UserDTO> response = new ResponseEntity<>(userDto, headers, HttpStatus.OK);
 //        response.getHeaders().add(HttpHeaders.SET_COOKIE, token);
@@ -135,16 +136,62 @@ public class AuthService implements AuthServiceInterface{
 
     @Override
     public ResponseEntity<Void> logout(String token, Long userId) {
-        return null;
+        Optional<Session> sessionOptional = sessionRepository.findByTokenAndUser_Id(token, userId);
+
+        if (sessionOptional.isEmpty()) {
+            return null;
+        }
+
+        Session session = sessionOptional.get();
+
+        session.setStatus(SessionStatus.Inactive);
+
+        sessionRepository.save(session);
+
+        return ResponseEntity.ok().build();
     }
 
     @Override
-    public ResponseEntity<UserDTO> signUp(String email, String password) {
-        return null;
+    public UserDTO signUp(String email, String password) {
+        User user = new User();
+        user.setEmail(email);
+        user.setPassword(bCryptPasswordEncoder.encode(password));
+
+        User savedUser = userRepository.save(user);
+
+        return UserDTO.from(savedUser);
     }
 
     @Override
-    public ResponseEntity<SessionStatus> validate(String token, Long userId) {
-        return null;
+    public SessionStatus validate(String token, Long userId) {
+        Optional<Session> sessionOptional = sessionRepository.findByTokenAndUser_Id(token, userId);
+
+        if (sessionOptional.isEmpty()) {
+            return SessionStatus.Inactive;
+        }
+
+        Session session = sessionOptional.get();
+
+        if (!session.getStatus().equals(SessionStatus.Active)) {
+            return SessionStatus.Inactive;
+        }
+
+
+        Jws<Claims> claimsJws = Jwts.parser()
+                .build()
+                .parseSignedClaims(token);
+
+        String email = (String) claimsJws.getPayload().get("email");
+        List<Role> roles = (List<Role>) claimsJws.getPayload().get("roles");
+        Date createdAt = (Date) claimsJws.getPayload().get("createdAt");
+
+        if (createdAt.before(new Date())) {
+            return SessionStatus.Inactive;
+        }
+
+
+//        if (!session.)
+
+        return SessionStatus.Active;
     }
 }

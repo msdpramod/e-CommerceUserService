@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 public interface AuthServiceInterface {
     ResponseEntity<UserDTO> login(String email, String password);
     ResponseEntity<Void> logout(String token, Long userId);
-    ResponseEntity<UserDTO> signUp(String email, String password);
-    ResponseEntity<SessionStatus> validate(String token, Long userId);
+    UserDTO signUp(String email, String password);
+   SessionStatus validate(String token, Long userId);
 
 }
